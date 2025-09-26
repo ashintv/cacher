@@ -28,9 +28,15 @@ func (c *Cache) Get(Key []byte) ([]byte, error) {
 	return val, nil
 }
 
-func (c *Cache) Set(Key []byte, Value []byte, t time.Duration) error {
+func (c *Cache) Set(Key []byte, Value []byte, ttl time.Duration) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	ticker := time.NewTicker(ttl)
+	go func() {
+		<-ticker.C
+		delete(c.data, string(Key))
+	}()
 	keyStr := string(Key)
 	c.data[keyStr] = Value
 	return nil
