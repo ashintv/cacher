@@ -2,6 +2,7 @@ package main
 
 import (
 	"cacher/cache"
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -56,6 +57,7 @@ func (s *Server) HandleConnection(con net.Conn) {
 }
 
 func (s *Server) handleCommand(conn net.Conn, raw []byte) {
+	var err error
 	msg, err := parseCommand(raw)
 	if err != nil {
 		fmt.Println("failed to parse command", err)
@@ -63,15 +65,37 @@ func (s *Server) handleCommand(conn net.Conn, raw []byte) {
 	}
 	switch msg.Cmd {
 	case CMDset:
-		if err := s.handleSetCommand(conn, msg); err != nil {
-			return
-		}
-
+		err = s.handleSetCommand(conn, msg)
+	case CMDget:
+		err = s.handleGetCommand(conn, msg)
 	}
+	if err != nil {
+		fmt.Println("failed to handle command", err)
+		return
+	}
+}
 
+func (s *Server) handleGetCommand(con net.Conn, msg *Message) error {
+	val, err := s.cache.Get(msg.Key)
+	if err != nil {
+		return err
+	}
+	_, err = con.Write(val)
+	if err != nil {
+		return err
+	}
+	go s.sendToFollowers(context.TODO(), msg)
+	return nil
 }
 
 func (s *Server) handleSetCommand(con net.Conn, msg *Message) error {
-	fmt.Println("handlig the set command" , msg)
+	if err := s.cache.Set(msg.Key, msg.Value, msg.TTL); err != nil {
+		return err
+	}
+	go s.sendToFollowers(context.TODO(), msg)
+	return nil
+}
+
+func (s *Server) sendToFollowers(ctx context.Context, msg *Message) error {
 	return nil
 }
