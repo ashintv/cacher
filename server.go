@@ -68,6 +68,11 @@ func (s *Server) handleCommand(conn net.Conn, raw []byte) {
 		err = s.handleSetCommand(conn, msg)
 	case CMDget:
 		err = s.handleGetCommand(conn, msg)
+	case CMDdel:
+		err = s.handeDelCommand(conn, msg)
+	case CMDhas:
+		err = s.handleHasCommand(conn, msg)
+
 	}
 	if err != nil {
 		fmt.Println("failed to handle command", err)
@@ -81,6 +86,29 @@ func (s *Server) handleGetCommand(con net.Conn, msg *Message) error {
 		return err
 	}
 	_, err = con.Write(val)
+	if err != nil {
+		return err
+	}
+	go s.sendToFollowers(context.TODO(), msg)
+	return nil
+}
+
+func (s *Server) handleHasCommand(con net.Conn, msg *Message) error {
+	val := s.cache.Has(msg.Key)
+	var err error
+	if val {
+		_, err = con.Write([]byte("true"))
+	}
+	if err != nil {
+		return err
+	}
+	go s.sendToFollowers(context.TODO(), msg)
+	return nil
+}
+
+
+func (s *Server) handeDelCommand(con net.Conn, msg *Message) error {
+	err := s.cache.Delete(msg.Key)
 	if err != nil {
 		return err
 	}

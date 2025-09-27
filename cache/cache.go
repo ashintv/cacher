@@ -47,13 +47,16 @@ func (c *Cache) Set(Key []byte, Value []byte, ttl time.Duration) error {
 func (c *Cache) Has(Key []byte) bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
+
 	_, ok := c.data[string(Key)]
+	log.Printf("HAS %s = %t", string(Key), ok)
 	return ok
 }
 
 func (c *Cache) Delete(Key []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	log.Printf("DEL %s ", string(Key))
 	delete(c.data, string(Key))
 	return nil
 }

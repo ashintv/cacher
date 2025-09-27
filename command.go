@@ -13,6 +13,8 @@ type Command string
 const (
 	CMDset Command = "SET"
 	CMDget Command = "GET"
+	CMDhas Command = "HAS"
+	CMDdel Command = "DEL"
 )
 
 type Message struct {
